@@ -1,0 +1,13 @@
+sys-apps/hwids
+sys-apps/pciutils
+sys-apps/usbutils
+dev-libs/libgudev
+sys-fs/eudev
+sys-fs/udev-init-scripts
+virtual/libgudev
+virtual/libudev
+virtual/udev
+
+sys-apps/kexec-tools
+sys-fs/lvm2
+=sys-boot/plymouth-9999::dexlay **
