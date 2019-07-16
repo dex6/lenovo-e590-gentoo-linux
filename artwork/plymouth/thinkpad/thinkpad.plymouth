@@ -1,0 +1,22 @@
+# Based on Plymouth spinner theme, throbber animation from KDE Breeze theme and own work.
+
+[Plymouth Theme]
+Name=Thinkpad
+Description=A theme for Lenovo Thinkpads.
+ModuleName=two-step
+
+[two-step]
+Font=Liberation 12
+TitleFont=Liberation 24
+ImageDir=/usr/share/plymouth/themes/thinkpad
+DialogHorizontalAlignment=.5
+DialogVerticalAlignment=.75
+HorizontalAlignment=.5
+VerticalAlignment=.75
+WatermarkHorizontalAlignment=.5
+WatermarkVerticalAlignment=.3447
+BackgroundStartColor=0x000000
+BackgroundEndColor=0x000000
+ProgressBarBackgroundColor=0x606060
+ProgressBarForegroundColor=0xf2f3f3
+MessageBelowAnimation=true

@@ -1,0 +1,22 @@
+# Thinkpad theme + Gentoo logo from gentoo.org.
+
+[Plymouth Theme]
+Name=Thinkpad-Gentoo
+Description=A theme for Lenovo Thinkpads with small Gentoo nuance in the corner.
+ModuleName=two-step
+
+[two-step]
+Font=Liberation 12
+TitleFont=Liberation 24
+ImageDir=/usr/share/plymouth/themes/thinkpad-gentoo
+DialogHorizontalAlignment=.5
+DialogVerticalAlignment=.75
+HorizontalAlignment=.5
+VerticalAlignment=.75
+WatermarkHorizontalAlignment=.5
+WatermarkVerticalAlignment=.3447
+BackgroundStartColor=0x000000
+BackgroundEndColor=0x000000
+ProgressBarBackgroundColor=0x606060
+ProgressBarForegroundColor=0xf2f3f3
+MessageBelowAnimation=true
