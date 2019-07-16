@@ -2,3 +2,4 @@ sys-devel/gcc -d -fortran -go
 sys-apps/openrc -netifrc
 sys-fs/lvm2 -udev -readline -thin
 sys-boot/plymouth::dexlay -gtk -udev
+sys-boot/thinkpad-themes::dexlay -plasma

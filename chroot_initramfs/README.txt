@@ -31,11 +31,11 @@ be more than enough)
 # emerge -avuDN @world
 # eselect news read  # you probably have seen them already...
 # emerge -a --depclean
-# (optionally) emerge -ave @world
+# (optionally, but highly recommended) emerge -ave @world
 
 7. Emerge packages needed later in initramfs / disk unlocker
 # emerge -av =sys-boot/plymouth-9999::dexlay
+# emerge -av thinkpad-themes::dexlay liberation-fonts
 # emerge -av libaio::dexlay lvm2
-
-# plymouth theme
-# font?
+# emerge -av efibootmgr::dexlay
+# emerge -av inotify-tools kexec-tools
