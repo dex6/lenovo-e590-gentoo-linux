@@ -1,13 +1,6 @@
 sys-apps/hwids
 sys-apps/pciutils
 sys-apps/usbutils
-dev-libs/libgudev
-sys-fs/eudev
-sys-fs/udev-init-scripts
-virtual/libgudev
-virtual/libudev
-virtual/udev
 
-sys-apps/kexec-tools
-sys-fs/lvm2
-=sys-boot/plymouth-9999::dexlay **
+=sys-boot/plymouth-0.9.4_p*::dexlay
+sys-block/sed-opal-unlocker::dexlay

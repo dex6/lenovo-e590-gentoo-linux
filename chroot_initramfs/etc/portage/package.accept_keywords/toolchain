@@ -1,7 +1,0 @@
-sys-devel/binutils
-sys-devel/binutils-config
-sys-devel/gcc
-sys-devel/gdb
-sys-kernel/linux-headers
-sys-libs/binutils-libs
-sys-libs/uclibc-ng
