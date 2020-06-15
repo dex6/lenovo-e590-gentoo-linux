@@ -1,0 +1,74 @@
+# vim: set ft=sh:
+
+export break=
+export init=/sbin/init
+export rootdev=
+export splash=0
+
+panic() {
+	[ -x /bin/plymouth ] && /bin/plymouth hide-splash
+	[ -x /bin/plymouth ] && /bin/plymouth quit
+	[ -n "$1" ] && echo "$@" || echo "Something went wrong, dropping a rescue shell"
+	exec /bin/sh
+}
+
+do_init() {
+	# create some basic dirs
+	[ -d /proc ]     || /bin/busybox mkdir /proc
+	[ -d /sys ]      || /bin/busybox mkdir /sys
+	[ -d /dev ]      || /bin/busybox mkdir /dev
+	[ -d /tmp ]      || /bin/busybox mkdir /tmp
+	[ -d /root ]     || /bin/busybox mkdir /root
+	/bin/busybox mkdir -p /var/lock
+	/bin/busybox mkdir -p /var/run
+	/bin/busybox mkdir -p /var/log
+	/bin/busybox mkdir -p /run
+	/bin/busybox mkdir -p /dev/mapper
+
+	# mount needed stuff and install busybox links
+	/bin/busybox mount -o nodev,nosuid,noexec -t proc proc /proc
+	/bin/busybox mount -o nodev,nosuid,noexec -t sysfs sysfs /sys
+	/bin/busybox mount -o nosuid,noexec -t devtmpfs devtmpfs /dev
+	/bin/busybox mkdir -p /dev/pts
+	/bin/busybox mount -o nosuid,noexec -t devpts devpts /dev/pts
+	/bin/busybox --install -s
+	# now can use safely any busybox builtin tools via symlinks
+
+	# parse kernel cmdline
+	local x
+	for x in $(cat /proc/cmdline); do
+		case $x in
+			break=*)
+				break="${x#break=}"
+				;;
+			init=*)
+				init="${x#init=}"
+				;;
+			root=*)
+				rootdev="${x#root=}"
+				;;
+			splash)
+				splash=1
+				;;
+		esac
+	done
+}
+
+do_cleanup() {
+	umount -l /dev/pts
+	umount -l /dev
+	umount -l /sys
+	umount -l /proc
+	unset break
+	unset rootdev
+	unset splash
+}
+
+maybe_break() {
+	if [ "${break:-}" = "$1" ]; then
+		echo "Spawning shell: break on $1 stage occured"
+		plymouth hide-splash
+		setsid cttyhack /bin/sh
+	fi
+}
+

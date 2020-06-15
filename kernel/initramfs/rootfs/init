@@ -1,0 +1,34 @@
+#!/bin/sh
+# vim: set ft=sh:
+
+. /lib/init-scripts/functions
+do_init
+maybe_break top
+
+if [ "${splash}" = "1" ]; then
+	plymouthd --mode=boot --attach-to-session >/dev/null 2>&1
+	plymouth show-splash
+fi
+
+# save disk password in kernel for waking from S3 sleep
+for _file in /etc/disk-*.pass; do
+	if [ -f "${_file}" ]; then
+		_disk="${_file##/etc/disk-}"
+		_disk="/dev/${_disk%%.pass}"
+		sed-opal-unlocker s3save "${_disk}" "${_file}"
+		shred -n 3 -z -u "${_file}"
+	fi
+done
+unset _file _disk
+
+# activate LV and mount real rootfs
+maybe_break premount
+[ -b "${rootdev}" ] || lvm lvchange -ay "${rootdev}" || panic "Unable to activate root LV"
+mount -t ext4 -o ro "${rootdev}" /mnt/root || panic "Unable to mount real rootfs"
+
+# mounted what's needed; proceed with real boot
+maybe_break preinit
+do_cleanup
+exec switch_root /mnt/root "${init}"
+
+panic "switch_root failed, dropping a shell..."
