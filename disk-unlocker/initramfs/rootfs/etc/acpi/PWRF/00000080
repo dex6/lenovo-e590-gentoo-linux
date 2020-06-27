@@ -1,0 +1,16 @@
+#!/bin/sh
+
+exec 1>/dev/console
+exec 2>/dev/console
+
+if mkdir /tmp/shutdown-in-progress; then
+	echo "Shutting down!"
+	plymouth change-mode --shutdown
+	plymouth display-message --text="Shutting down!"
+
+	sync
+	sleep 2
+	poweroff -d 1 -f
+else
+	echo "Already shutting down..."
+fi

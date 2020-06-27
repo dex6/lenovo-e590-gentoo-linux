@@ -1,0 +1,116 @@
+#!/bin/busybox sh
+# vim: set ft=sh:
+
+# Normally, ROOT_DIR is empty. For testing export and set it pointing to initramfs rootfs dir.
+. $ROOT_DIR/etc/unlocker.conf
+
+UNLOCKED=0
+
+try_unlock_using_device() {
+	local dev="$1"
+	local fs_good=0
+	local fs_type="auto"
+
+	# is this a block device?
+	[ -b "$dev" ] || return 1
+
+	# extract metadata about the device
+	local field
+	for field in $(blkid "$dev"); do
+		case $field in
+			LABEL=$UC_USB_KEY_FSLABEL|LABEL=\"$UC_USB_KEY_FSLABEL\")
+				# if label is set and matches, assume this is now
+				# later may be unset if fs_type happens to be unknown
+				[ -n "$UC_USB_KEY_FSLABEL" ] && fs_good=1
+				;;
+			TYPE=\"*\")
+				fs_type=${field#TYPE=\"}
+				fs_type=${fs_type%\"}
+				;;
+			TYPE=*)
+				fs_type=${field#TYPE=}
+				;;
+		esac
+	done
+
+	# check if filesystem is supported by the unlocker
+	case $fs_type in
+		ext*|vfat)
+			# if label has not been set, try all devices with supported FS
+			[ -z "$UC_USB_KEY_FSLABEL" ] && fs_good=1
+			;;
+		*)
+			fs_good=0
+			;;
+	esac
+
+	# final gate; if fs_good flag is set, proceed
+	[ ${fs_good} -ne 1 ] && return 1
+
+	local ret=1
+	local mdir="/mnt/tkey_$(basename "$dev")"
+	mkdir -p "$mdir"
+	if mount -t $fs_type -o ro "$dev" "$mdir"; then
+		if [ -f "$mdir/$UC_USB_KEY_FILE" ]; then
+			sed-opal-unlocker unlock,MBRunshadow "$UC_DISK_TO_UNLOCK" "$mdir/$UC_USB_KEY_FILE"
+			ret=$?
+			[ $ret -eq 0 ] && [ "$UC_PASS_UNLOCK_CREDS" -eq "1" ] && cp "$mdir/$UC_USB_KEY_FILE" "/tmp/disk.pass"
+		else
+			echo "No key in $mdir on $dev"
+		fi
+		umount "$mdir"
+	else
+		echo "Unable to mount $dev on $mdir"
+	fi
+	rmdir "$mdir"
+
+	return $ret
+}
+
+scan_devices() {
+	local dev
+	for dev in /dev/sd* /dev/mmcblk*; do
+		if try_unlock_using_device "$dev"; then
+			UNLOCKED=1
+			return 0
+		fi
+	done
+	return 1
+}
+
+wait_for_key() {
+	while read dev; do
+		if try_unlock_using_device "$dev"; then
+			UNLOCKED=1
+			return 0
+		fi
+	done <&42
+}
+
+stop_inotify() {
+	[ -n "$PID_INOTIFY" ] && kill "$PID_INOTIFY" 2>/dev/null
+	PID_INOTIFY=""
+	exec 42<&-
+}
+
+
+# to avoid race, inotify needs to be set up first
+rm -f /tmp/usbkey.inotify.pipe
+mkfifo /tmp/usbkey.inotify.pipe
+( exec inotifywait -q --monitor -e create --format "%w%f" /dev >/tmp/usbkey.inotify.pipe )&
+PID_INOTIFY="$!"
+# open second end of pipe now so the inotifywait command is not blocked
+exec 42</tmp/usbkey.inotify.pipe
+trap stop_inotify EXIT INT QUIT TERM
+sleep 0.3
+
+# then we check current devices, maybe the key is already inserted in?
+scan_devices || wait_for_key
+
+# and finally...
+if [ $UNLOCKED -eq 1 ]; then
+	rm -f /tmp/wait.for.me
+	exit 0
+else
+	exit 1
+fi

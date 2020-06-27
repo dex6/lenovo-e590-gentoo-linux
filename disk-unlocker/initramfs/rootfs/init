@@ -1,0 +1,55 @@
+#!/bin/sh
+# vim: set ft=sh:
+
+. /lib/init-scripts/functions
+. /etc/unlocker.conf
+do_init
+maybe_break top
+
+if [ "${splash}" = "1" ]; then
+	plymouthd --mode=boot --attach-to-session >/dev/null 2>&1
+	plymouth show-splash
+fi
+
+# notification file that we may continue
+touch /tmp/wait.for.me
+
+# allow simple poweroff
+start-stop-daemon -q --start --exec /sbin/acpid --pidfile /run/acpid.pid -- -p /run/acpid.pid
+
+# start unlocking processes in background with new sessions, so they can be killed as a group
+# start-stop-daemon cannot be used since --stop does not stop all child processes
+( exec setsid /sbin/init-unlock_with_password )&
+PID_pass=$!
+( exec setsid /sbin/init-unlock_with_usbkey )&
+PID_usb=$!
+
+inotifywait -e delete_self /tmp/wait.for.me >/dev/null 2>&1
+
+# kill <negative pid> sends signal to whole process group, effectively killing
+# all processes spawned by these two subshells started above.
+kill -- -$PID_usb -$PID_pass >/dev/null 2>&1
+start-stop-daemon -q --stop --pidfile /run/acpid.pid
+
+# disk unlocked, refresh partition table
+plymouth display-message --text="Unlocked! Going on."
+blockdev --rereadpt "$UC_DISK_TO_UNLOCK"
+
+# 'c' pressed? ask password and drop rescue/debug shell
+if [ -f /tmp/do.console_drop ]; then
+	plymouth hide-splash
+	plymouth quit
+	setsid cttyhack sulogin
+fi
+
+# pick next kernel and setup reboot hook
+/sbin/init-setup_next_kernel
+
+# cleanup and jump to next kernel/reboot
+plymouth display-message --text=""
+plymouth quit
+maybe_break preinit
+do_cleanup
+/bin/sh /tmp/reboot.cmd
+
+panic "kexec/reboot failed, dropping a shell..."
